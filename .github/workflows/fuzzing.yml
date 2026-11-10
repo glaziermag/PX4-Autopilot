@@ -22,7 +22,7 @@ jobs:
         run: git config --system --add safe.directory '*'
 
       - name: Install clang
-        run: apt-get update && apt-get install -y clang
+        run: apt-get update && apt-get install -y clang libclang-rt-dev
 
       - uses: ./.github/actions/setup-ccache
         id: ccache
