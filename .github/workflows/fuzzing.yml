@@ -24,6 +24,19 @@ jobs:
       - name: Install clang
         run: apt-get update && apt-get install -y clang
 
+      - name: Toolchain diag
+        run: |
+          head -2 /etc/os-release; clang --version | head -1; gcc --version | head -1; cmake --version | head -1
+          ls /usr/lib/gcc/x86_64-linux-gnu/; ls -d /usr/lib/llvm-*/lib/clang/*/lib/* 2>/dev/null || echo "no clang runtime dirs"
+          apt-cache policy libclang-rt-18-dev libclang-rt-dev 2>/dev/null | grep -E "^[a-z]|Installed|Candidate"
+          printf '#include <pthread.h>\nint main(){pthread_t t; (void)t; return 0;}\n' > /tmp/t.c
+          printf '#include <string>\nint main(){std::string s="x"; return (int)s.size()-1;}\n' > /tmp/t.cpp
+          clang /tmp/t.c -o /tmp/t -pthread && echo C_PTHREAD_OK || echo C_PTHREAD_FAIL
+          clang++ -std=c++17 /tmp/t.cpp -o /tmp/tpp && echo CXX17_OK || echo CXX17_FAIL
+          clang -fsanitize=address /tmp/t.c -o /tmp/ta -pthread && echo ASAN_OK || echo ASAN_FAIL
+          clang++ -fsanitize=address,fuzzer-no-link -std=c++17 /tmp/t.cpp -o /tmp/tf && echo FUZZER_NOLINK_OK || echo FUZZER_NOLINK_FAIL
+          grep -rn -E "fsanitize|FUZZTEST_FUZZING_MODE|fuzztest_setup" /__w/PX4-Autopilot/PX4-Autopilot/test/CMakeLists.txt /__w/PX4-Autopilot/PX4-Autopilot/cmake/*.cmake /__w/PX4-Autopilot/PX4-Autopilot/CMakeLists.txt 2>/dev/null | head -12
+
       - uses: ./.github/actions/setup-ccache
         id: ccache
         with:
